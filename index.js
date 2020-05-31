@@ -22,23 +22,44 @@ const createTextElement = (text) => {
   };
 };
 
-const render = (element, container) => {
-  //TODO create dom nodes
+const createDom = (fiber) => {
   const dom =
-    element.type === "TEXT_ELEMENT"
+    fiber.type === "TEXT_ELEMENT"
       ? document.createTextNode("")
       : document.createElement(element.type);
-
   const isProperty = (key) => key !== "children";
-  Object.keys(element.props)
+  Object.keys(fiber.props)
     .filter(isProperty)
     .forEach((name) => {
-      dom[name] = element.props[name];
+      dom[name] = fiber.props[name];
     });
-  element.props.children.forEach((child) =>
-    render(child, dom)
-  );
-  container.appendChild(dom);
+
+  return dom;
+};
+
+const render = (element, container) => {
+  //TODO set next unit of work
+  //   element.props.children.forEach((child) =>
+  //     render(child, dom)
+  //   );
+  //   container.appendChild(dom);
+};
+
+let nextUnitOfWork = null;
+
+const workLoop = (deadline) => {
+  let shouldYield = false;
+  while (nextUnitOfWork && !shouldYield) {
+    nextUnitOfWork = performUnitOfWork(nextUnitOfWork);
+    shouldYield = deadline.timeRemaining() < 1;
+  }
+  requestIdleCallback(workLoop);
+};
+
+requestIdleCallback(workLoop);
+
+const performUnitOfWork = (nextUnitOfWork) => {
+  //TODO
 };
 
 const Pedantic = {
