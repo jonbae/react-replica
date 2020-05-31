@@ -37,14 +37,33 @@ const createDom = (fiber) => {
   return dom;
 };
 
+const commitRoot = () => {
+  //TODO add nodes to dom
+  commitWork(wipRoot.child);
+  wipRoot = null;
+};
+
+const commitWork = (fiber) => {
+  if (!fiber) {
+    return;
+  }
+
+  const domParent = fiber.parent.dom;
+  domParent.appendChild(fiber.dom);
+  commitWork(fiber.child);
+  commitWork(fiber.sibling);
+};
+
 const render = (element, container) => {
   //TODO set next unit of work
-  nextUnitOfWork = {
+  wipRoot = {
     dom: container,
     props: {
       children: [element],
     },
   };
+
+  nextUnitOfWork = wipRoot;
 
   //   element.props.children.forEach((child) =>
   //     render(child, dom)
@@ -53,6 +72,7 @@ const render = (element, container) => {
 };
 
 let nextUnitOfWork = null;
+let wipRoot = null;
 
 const workLoop = (deadline) => {
   let shouldYield = false;
@@ -60,6 +80,11 @@ const workLoop = (deadline) => {
     nextUnitOfWork = performUnitOfWork(nextUnitOfWork);
     shouldYield = deadline.timeRemaining() < 1;
   }
+
+  if (!nextUnitOfWork && wipRoot) {
+    commitRoot();
+  }
+
   requestIdleCallback(workLoop);
 };
 
@@ -122,6 +147,7 @@ const Pedantic = {
 //   Pedantic.createElement("a", null, "bar"),
 //   Pedantic.createElement("b")
 // )
+
 /** @jsx Pedantic.createElement */
 const element = (
   <div id="foo">
