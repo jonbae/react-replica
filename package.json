@@ -1,0 +1,11 @@
+{
+  "name": "react-replica",
+  "version": "1.0.0",
+  "description": "a replica of React",
+  "main": "index.js",
+  "keywords": [
+    "react"
+  ],
+  "author": "jonathan bae",
+  "license": "ISC"
+}
