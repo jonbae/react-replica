@@ -325,14 +325,14 @@ const container = document.getElementById("root");
 
 // rerender("World");
 
-function Counter() {
+const Counter = () => {
   const [state, setState] = Pedantic.useState(1);
   return (
     <h1 onClick={() => setState((c) => c + 1)}>
       Count: {state}
     </h1>
   );
-}
+};
 
 const App = (props) => {
   return <h1>Hi {props.name}</h1>;
