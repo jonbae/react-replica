@@ -100,6 +100,7 @@ const commitWork = (fiber) => {
     domParent.appendChild(fiber.dom);
   } else if (fiber.effectTag === "DELETION") {
     commitDeletion(fiber, domParent);
+    return;
   } else if (
     fiber.effectTag === "UPDATE" &&
     fiber.dom !== null
