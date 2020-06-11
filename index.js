@@ -40,8 +40,6 @@ const isNew = (prev, next) => (key) =>
 const isGone = (prev, next) => (key) => !(key in next);
 
 const updateDom = (dom, prevProps, nextProps) => {
-  //TODO
-
   //Remove old or changed event listeners
   Object.keys(prevProps)
     .filter(isEvent)
@@ -111,6 +109,7 @@ const commitWork = (fiber) => {
       fiber.alternate.props,
       fiber.props
     );
+    domParent.appendChild(fiber.dom);
   }
   commitWork(fiber.child);
   commitWork(fiber.sibling);
@@ -296,13 +295,6 @@ const Pedantic = {
   render,
   useState,
 };
-
-// const element = Pedantic.createElement(
-//   "div",
-//   { id: "foo" },
-//   Pedantic.createElement("a", null, "bar"),
-//   Pedantic.createElement("b")
-// )
 
 /** @jsx Pedantic.createElement */
 const container = document.getElementById("root");
