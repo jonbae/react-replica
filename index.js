@@ -77,6 +77,30 @@ const updateDom = (dom, prevProps, nextProps) => {
     });
 };
 
+const cancelEffects = (fiber) => {
+  if (fiber.hooks) {
+    fiber.hooks
+      .filter(
+        (hook) => hook.tag === "effect" && hook.cancel
+      )
+      .forEach((effectHook) => {
+        effectHook.cancel();
+      });
+  }
+};
+
+const runEffects = (fiber) => {
+  if (fiber.hooks) {
+    fiber.hooks
+      .filter(
+        (hook) => hook.tag === "effect" && hook.effect
+      )
+      .forEach((effectHook) => {
+        effectHook.cancel = effectHook.effect();
+      });
+  }
+};
+
 const commitRoot = () => {
   //TODO add nodes to dom
   deletions.forEach(commitWork);
@@ -95,24 +119,25 @@ const commitWork = (fiber) => {
     domParentFiber = domParentFiber.parent;
   }
   const domParent = domParentFiber.dom;
-  if (
-    fiber.effectTag === "PLACEMENT" &&
-    fiber.dom !== null
-  ) {
-    domParent.appendChild(fiber.dom);
+  if (fiber.effectTag === "PLACEMENT") {
+    if (fiber.dom !== null) {
+      domParent.appendChild(fiber.dom);
+    }
+    runEffects(fiber);
+  } else if (fiber.effectTag === "UPDATE") {
+    if (fiber.dom !== null) {
+      updateDom(
+        fiber.dom,
+        fiber.alternate.props,
+        fiber.props
+      );
+      domParent.appendChild(fiber.dom); // outside or inside conditional?
+    }
+    runEffects(fiber);
   } else if (fiber.effectTag === "DELETION") {
+    cancelEffects(fiber);
     commitDeletion(fiber, domParent);
     return;
-  } else if (
-    fiber.effectTag === "UPDATE" &&
-    fiber.dom !== null
-  ) {
-    updateDom(
-      fiber.dom,
-      fiber.alternate.props,
-      fiber.props
-    );
-    domParent.appendChild(fiber.dom);
   }
   commitWork(fiber.child);
   commitWork(fiber.sibling);
@@ -194,6 +219,34 @@ const updateFunctionComponent = (fiber) => {
   reconcileChildren(fiber, children);
 };
 
+const hasDepsChanged = (prevDeps, nextDeps) =>
+  !prevDeps ||
+  !nextDeps ||
+  prevDeps.length !== nextDeps.length ||
+  prevDeps.some((dep, index) => dep !== nextDeps[index]);
+
+const useEffect = (effect, deps) => {
+  const oldHook =
+    wipFiber.alternate &&
+    wipFiber.alternate.hooks &&
+    wipFiber.alternate.hooks[hookIndex];
+
+  const hasChanged = hasDepsChanged(
+    oldHook ? oldHook.deps : undefined,
+    deps
+  );
+
+  const hook = {
+    tag: "effect",
+    effect: hasChanged ? effect : null,
+    cancel: hasChanged && oldHook && oldHook.cancel,
+    deps,
+  };
+
+  wipFiber.hooks.push(hook);
+  hookIndex++;
+};
+
 const useState = (initial) => {
   //TODO
   const oldHook =
@@ -243,11 +296,11 @@ const reconcileChildren = (wipFiber, elements) => {
   while (index < elements.length || oldFiber != null) {
     const element = elements[index];
 
-    const newFiber = null;
+    let newFiber = null;
 
     //TODO compare oldFiber to element
     const sameType =
-      oldFiber && element && element.type == oldFiber.type;
+      oldFiber && element && element.type === oldFiber.type;
 
     if (sameType) {
       //TODO update the node
@@ -297,6 +350,7 @@ const Pedantic = {
   createElement,
   render,
   useState,
+  useEffect,
 };
 
 /** @jsx Pedantic.createElement */
@@ -322,6 +376,10 @@ const container = document.getElementById("root");
 
 const Counter = () => {
   const [state, setState] = Pedantic.useState(1);
+  Pedantic.useEffect(() => {
+    console.log(state);
+  }, []);
+
   return (
     <h1 onClick={() => setState((c) => c + 1)}>
       Count: {state}
